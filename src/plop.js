@@ -69,9 +69,16 @@ function run(env) {
 	plop = nodePlop(plopfilePath);
 	generators = plop.getGeneratorList();
 	if (!generator) {
-		out.chooseOptionFromList(generators).then(function (generatorName) {
-			doThePlop(plop.getGenerator(generatorName));
-		});
+		var fn = function() {
+			out.chooseOptionFromList(generators).then(function (generatorName) {
+				return doThePlop(plop.getGenerator(generatorName));
+			}).then(function() {
+				if (argv.loop) {
+					fn();
+				}
+			})
+		}
+		fn();
 	} else if (generators.map(function (v) { return v.name; }).indexOf(generator) > -1) {
 		doThePlop(plop.getGenerator(generator));
 	} else {
@@ -85,7 +92,7 @@ function run(env) {
 // everybody to the plop!
 //
 function doThePlop(generator) {
-	generator.runPrompts().then(generator.runActions)
+	return generator.runPrompts().then(generator.runActions)
 		.then(function (result) {
 			result.changes.forEach(function(line) {
 				console.log(chalk.green('[SUCCESS]'), line.type, line.path);
